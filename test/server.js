@@ -7,14 +7,14 @@ module.exports = function() {
 	var fs = require('fs');
 
 	// set to true to enable debug output
-	var debug = false;
+	var debug = true;
 
 	var data = {};
 	var server = mailer.createServer({
 		listen: {
-			smtp: 2525,
-			smtps: 2526,
-			smtptls: 2527
+			smtp: 2625,
+			smtps: 2626,
+			smtptls: 2627
 		},
 		logger: {
 			// comment / uncomment for debug output
@@ -37,9 +37,9 @@ module.exports = function() {
 
 		this.timeout(10000);
 
-		var smtps = tls.connect({port: 2526, rejectUnauthorized: false});
-		var smtptls = net.connect({port: 2527});
-		var smtp = net.connect({port: 2525});
+		var smtps = tls.connect({port: 2626, rejectUnauthorized: false});
+		var smtptls = net.connect({port: 2627});
+		var smtp = net.connect({port: 2625});
 
 		it('should greet on smtp', function(done) {
 			smtp.once('data', function(data) {

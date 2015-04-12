@@ -25,6 +25,8 @@ module.exports = {
 			if (!local) {
 				res.log.verbose('relaying mail to "' + to + '". local domains: ' + req.session.config.domains.join(', '));
 				req.session.relay.add({ from: req.session.envelope.from, to: to }, fs.createReadStream(req.command.data), cb);
+			} else {
+				cb();
 			}
 
 		}, function(err) {
@@ -35,8 +37,6 @@ module.exports = {
 			return res.accept();
 
 		});
-
-
 
 	}
 

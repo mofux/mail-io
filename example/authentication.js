@@ -11,8 +11,8 @@ var server = mailer.createServer({
 
 	session.on('auth', function(req, res) {
 
-		// make sure thomas/thomas (dGhvbWFz) gets through
-		if (req.user && req.user.username === 'thomas' && req.user.password === 'thomas') {
+		// make sure tester/tester (dGVzdGVy) gets through
+		if (req.user && req.user.username === 'tester' && req.user.password === 'tester') {
 			res.accept();
 		} else {
 			res.reject(552, 'authentication failed');
@@ -20,33 +20,4 @@ var server = mailer.createServer({
 
 	});
 
-});
-
-var smtp = require('smtp-protocol');
-
-smtp.connect('localhost', 25, function(mail) {
-	async.series([
-		function(cb) {
-			mail.ehlo('localhost', cb);
-		},
-		function(cb) {
-			mail.login('thomas', 'thomas', 'PLAIN', cb);
-		},
-		function(cb) {
-			mail.from('thomas@vagrant-master', cb);
-		},
-		function(cb) {
-			mail.to('t.zilz@mofux.org', cb);
-		}, function(cb) {
-			mail.data(cb);
-		},
-		function(cb) {
-			require('fs').createReadStream('/vagrant/README.md').pipe(mail.message(cb));
-		},
-		function(cb) {
-			mail.quit(cb);
-		}
-	], function(err, data) {
-		//console.log(err, data);
-	});
 });

@@ -56,7 +56,7 @@ module.exports = {
 			// query additional txt information which may contain more information
 			// about the block reason
 			dns.resolveTxt(record, function(err, infos) {
-				res.reject(554, 'service unavailable; client host [' + ip + '] blocked using ' + blacklist + '; ' + (infos ? infos.join(';') : ''));
+				res.reject(550, 'service unavailable; client host [' + ip + '] blocked using ' + blacklist + '; ' + (infos ? infos.join(';') : ''));
 			});
 
 		});

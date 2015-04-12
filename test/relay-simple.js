@@ -21,7 +21,7 @@ module.exports = function() {
 	var remote = null;
 
 // enable debug output
-	var debug = false;
+	var debug = true;
 
 // function will be overwritten by our test.
 // function is called when the 'queue' event is triggered on localhost
@@ -94,7 +94,7 @@ module.exports = function() {
 				localhost.accepted.data.should.be.ok;
 				localhost.envelope.from.should.equal('user@remote');
 				localhost.envelope.to[0].should.equal('user@localhost');
-				fs.readFileSync(req.command.data).toString().should.equal(message);
+				fs.readFileSync(req.command.data).toString().should.endWith(message);
 				res.accept();
 				done();
 			}

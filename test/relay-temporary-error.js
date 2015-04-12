@@ -7,7 +7,10 @@
  * message from "user@remote" to "user@localhost" and "admin@localhost".
  * This will cause the "remote" server to relay the message to "localhost" twice.
  * To confirm this is working, we are listening for the "queue" event on "localhost",
- * which should be triggered if "remote" successfully relayed the message to "localhost"
+ * which should be triggered if "remote" successfully relayed the message to "localhost".
+ * Additionally, we will trigger a temporary error message on the "localhost" server
+ * for the first rcpt command arriving, which should cause the relay to retry the
+ * delivery
  */
 module.exports = function() {
 
@@ -21,7 +24,7 @@ module.exports = function() {
 	var remote = null;
 
 // enable debug output
-	var debug = false;
+	var debug = true;
 
 // function will be overwritten by our test.
 // function is called when the 'queue' event is triggered on localhost
@@ -77,7 +80,7 @@ module.exports = function() {
 		remote = session;
 	});
 
-	describe('relay queue test', function() {
+	describe('relay temporary failure test', function() {
 
 		this.timeout('20000');
 
@@ -102,20 +105,23 @@ module.exports = function() {
 			client.write('DATA\r\n');
 			client.write(message + '\r\n.\r\n');
 
+			var users = ['admin@localhost', 'user@localhost'];
+
 			// hook to 'queue' listener on localhost
 			onLocalhostQueue = function(req, res) {
 				localhost.accepted.data.should.be.ok;
 				localhost.envelope.from.should.equal('user@remote');
-				localhost.envelope.to[0].should.equal('user@localhost');
-				fs.readFileSync(req.command.data).toString().should.equal(message);
+				localhost.envelope.to[0].should.endWith('@localhost');
+				users.splice(users.indexOf(localhost.envelope.to[0]), 1);
+				fs.readFileSync(req.command.data).toString().should.endWith(message);
 				res.accept();
 
 				// hook to 'queue' listener on localhost
 				onLocalhostQueue = function(req, res) {
 					localhost.accepted.data.should.be.ok;
 					localhost.envelope.from.should.equal('user@remote');
-					localhost.envelope.to[0].should.equal('admin@localhost');
-					fs.readFileSync(req.command.data).toString().should.equal(message);
+					localhost.envelope.to[0].should.equal(users[0]);
+					fs.readFileSync(req.command.data).toString().should.endWith(message);
 					res.accept();
 					done();
 				}

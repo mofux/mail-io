@@ -12,7 +12,7 @@ module.exports = {
 		var report = function(message, cb/*err, result*/) {
 
 			var spamd = require('net').createConnection(783);
-			var timedout = false;
+			var done = false;
 			var response = {
 				code: -1,
 				message: 'FAILED',
@@ -26,7 +26,7 @@ module.exports = {
 			// if the connection times out, we return an error
 			spamd.setTimeout(10 * 1000, function() {
 
-				timedout = true;
+				done = true;
 				return cb('connection to spamd timed out');
 
 			});
@@ -49,7 +49,10 @@ module.exports = {
 
 			// catch service errors
 			spamd.once('error', function(err) {
-				if (!timedout) return cb(err);
+				if (!done) {
+					done = true;
+					return cb(err);
+				}
 			});
 
 			// flag that remembers if the very first data has been received
@@ -102,7 +105,10 @@ module.exports = {
 
 			// process the data once the connection is closed
 			spamd.once('close', function() {
-				if (!timedout) return cb(null, response);
+				if (!done) {
+					done = true;
+					return cb(null, response);
+				}
 			});
 
 		}
@@ -110,10 +116,22 @@ module.exports = {
 		// run the report
 		report(fs.createReadStream(req.command.data), function(err, data) {
 
-			err ? res.log.warn('spamd encountered an error: ', err) : res.set(data);
-			if (data) {
-				res.log.verbose((data.spam ? 'spam!' : 'no spam!') + ' (' + data.score + '/' + data.baseScore + ')');
+			// set a spam score and publishes the result, even if an error occured,
+			// in which case the score will always be 0
+			var result = { score: data && data.score ? data.score : 0, baseScore: req.config.baseScore || 5, err: err || null };
+			result.spam = result.score >= result.baseScore;
+			res.set(result);
+
+			if (err) {
+				if (err.code === 'ECONNREFUSED') {
+					res.log.verbose('unable to connect to spamd on port 783');
+				} else {
+					res.log.warn('spamd encountered an error: ', err)
+				}
+			} else {
+				res.log.verbose((result.spam ? 'spam!' : 'no spam!') + ' (' + result.score + '/' + result.baseScore + ')');
 			}
+
 			res.accept();
 
 		});

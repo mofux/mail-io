@@ -9,6 +9,7 @@ module.exports = {
 		var os = require('os');
 		var path = require('path');
 		var fs = require('fs');
+		var moment = require('moment-timezone');
 
 		// make sure we have valid senders and recipients
 		if ((!req.session.accepted.helo && !req.session.accepted.ehlo)) return res.reject(503, 'need HELO or EHLO command');
@@ -27,6 +28,16 @@ module.exports = {
 
 		// write stream to the tmp file
 		var fileStream = fs.createWriteStream(file);
+
+		// add received headers
+		var received =
+			'Received: from ' + req.session.client.hostname + ' (' + req.session.client.address + ')\n\t' +
+			'by ' + req.session.config.hostname + ' (' + req.session.connection.server.address().address + ') with ' +
+			(req.session.accepted.ehlo ? 'ESMTP' : 'SMTP') + (req.session.secure ? 'S' : '') + (req.session.accepted.auth ? 'A' : '') + '; ' +
+			moment().format('ddd, DD MMM YYYY HH:mm:ss ZZ') + '\r\n';
+
+		// write the received header to the top of the file
+		fileStream.write(received);
 
 		// when data is arriving, stream it to the file
 		req.stream.on('data', function(data) {
