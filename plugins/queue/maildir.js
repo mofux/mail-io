@@ -32,14 +32,14 @@ module.exports = {
 			domain: req.session.envelope.from.split('@')[1] || '',
 			address: req.session.envelope.from
 		}
-		sender.maildir = req.config.maildir.replace(/%n/g, sender.username).replace(/%d/g, sender.domain);
+		sender.mailDir = req.config.mailDir.replace(/%n/g, sender.username).replace(/%d/g, sender.domain);
 
 		// save the message to the Sent folder of the sender
 		if (req.session.config.domains.indexOf(sender.domain) !== -1) {
 			mailboxes.push({
 				user: sender,
 				folder: '.Sent',
-				path: path.join(sender.maildir, '.Sent')
+				path: path.join(sender.mailDir, '.Sent')
 			});
 		}
 
@@ -51,13 +51,13 @@ module.exports = {
 				domain: to.split('@')[1] || '',
 				address: to
 			}
-			rcpt.maildir = req.config.maildir.replace(/%n/g, rcpt.username).replace(/%d/g,rcpt.domain);
+			rcpt.mailDir = req.config.mailDir.replace(/%n/g, rcpt.username).replace(/%d/g,rcpt.domain);
 
 			if (req.session.config.domains.indexOf(rcpt.domain) !== -1) {
 				mailboxes.push({
 					user: sender,
 					folder: '.Junk',
-					path: path.join(rcpt.maildir, (res.get('queue/spamd').spam ? '.Junk' : ''))
+					path: path.join(rcpt.mailDir, (res.get('queue/spamd').spam ? '.Junk' : ''))
 				});
 			}
 

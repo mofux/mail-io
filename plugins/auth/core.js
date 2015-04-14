@@ -72,34 +72,29 @@ module.exports = {
 			// AUTH LOGIN
 			case 'login':
 
-				// flag the connection as busy, preventing it from accepting any further commands
-				req.session.connection.busy = true;
-
 				// request the username
-				res.write('334 ' + new Buffer('username:', 'utf8').toString('base64'));
+				res.write('334 ' + new Buffer('Username:', 'utf8').toString('base64'));
 
 				// listen for the username to arrive
-				req.session.connection.socket.once('data', function(data) {
+				res.read(function(data) {
 
 					// the auth request can be cancelled with a single '*'
 					if (data.toString().replace(/\r?\n|\r/g, '') === '*') {
-						res.reject(501, 'authentication aborted');
-						return req.session.connection.busy = false;
+						return res.reject(501, 'authentication aborted');
 					}
 
 					// this should now have the decoded username
 					var username = new Buffer(data.toString(), 'base64').toString();
 
 					// request the password
-					res.write('334 ' + new Buffer('password:', 'utf8').toString('base64'));
+					res.write('334 ' + new Buffer('Password:', 'utf8').toString('base64'));
 
 					// listen for the password to arrive
-					req.session.connection.socket.once('data', function(data) {
+					res.read(function(data) {
 
-						// the auth request can be cancelled with a singe '*'
+						// the auth request can be cancelled with a single '*'
 						if (data.toString().replace(/\r?\n|\r/g, '') === '*') {
-							res.reject(501, 'authentication aborted');
-							return req.session.connection.busy = false;
+							return res.reject(501, 'authentication aborted');
 						}
 
 						// this should now have the decoded password
@@ -116,7 +111,6 @@ module.exports = {
 						// for req.user and verify if the username and password
 						// are valid. if they are not valid, they must call res.reject(535, 'authentication failed')
 						res.accept(235, 'authentication successful');
-						req.session.connection.busy = false;
 
 					});
 				});
