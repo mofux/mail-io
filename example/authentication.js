@@ -1,7 +1,7 @@
 var mailer = require('./../lib/server.js');
 var async = require('async');
 
-var server = mailer.createServer({
+var servers = mailer.createServer({
 	listen: {
 		smtp: false,
 		smtps: false,
@@ -11,7 +11,7 @@ var server = mailer.createServer({
 
 	session.on('auth', function(req, res) {
 
-		// make sure tester/tester (dGVzdGVy) gets through
+		// make sure tester/tester gets through
 		if (req.user && req.user.username === 'tester' && req.user.password === 'tester') {
 			res.accept();
 		} else {
@@ -21,3 +21,4 @@ var server = mailer.createServer({
 	});
 
 });
+

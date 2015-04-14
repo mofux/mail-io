@@ -37,16 +37,29 @@ module.exports = {
 
 				// plain auth sends one base64 encoded string that contains the username and the password (e.g. user\x00user\x00password);
 				var data = new Buffer(req.command.data.split(' ')[1], 'base64').toString().split('\x00');
-				if (data.length !== 3 || !data[0].length || !data[1].length || !data[2].length) return res.reject(500, 'invalid user data');
+				if (data.length < 2) return res.reject(500, 'invalid user data');
 
 				// get the user and password
-				var username = data[1] || data[0];
-				var password = data[2];
+				var username = data.length < 3 ? data[0] : data[1];
+				var password = data.length < 3 ? data[1] : data[2];
+
+				// make sure username and password are set
+				if (!username || !username.length || !password || !password.length) return res.reject(500, 'invalid user data');
 
 				// assign the user to the session
 				req.user = {
 					username: username,
 					password: password
+				}
+
+				// special handling: the server can send messages to us that have to be implicitly authenticated.
+				// to do this, it provides a apiUser object that it uses to authenticate. The apiUser object's
+				// username and password are random strings generated with every server start.
+				// if the username and password match this apiUser, we will not continue processing the auth
+				// handlers as they should not care about this implementation detail
+				if (req.session.connection.server.apiUser && req.session.connection.server.apiUser.username === username && req.session.connection.server.apiUser.password === password) {
+					res.log.verbose('authentication succeeded using the api user. no more auth handlers will be called');
+					return res.final(235, 'authentication successful (api user)');
 				}
 
 				// accept the request

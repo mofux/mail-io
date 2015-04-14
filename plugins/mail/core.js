@@ -12,7 +12,7 @@ module.exports = {
 		if (!req.command.data) return res.reject(501, 'incomplete MAIL command');
 
 		// do not allow multiple mail commands for one transaction
-		if (req.session.accepted.mail) return res.reject(503, 'nested MAIL command');
+		if (req.session.accepted.mail && req.session.transaction < 1) return res.reject(503, 'nested MAIL command');
 
 		// the mail command may specify the size of the message like this MAIL FROM:<some@thing.com> SIZE=1024000
 		if (req.session.config.limits.messageSize && req.command.data.toLowerCase().indexOf(' size=')) {
@@ -24,7 +24,7 @@ module.exports = {
 		// parse the from
 		var m = req.command.data.match(/^from\s*:\s*(\S+)(?:\s+(.*))?/i);
 		if (!m || !m[1] || !m[1].length) return res.reject(501, 'parse error in mail command');
-		var from = m[1] === '<>' ? '<>' : m[1].replace(/^</, '').replace(/>$/, '');
+		var from = m[1] === '<>' ? '<>' : m[1].replace(/^</, '').replace(/>$/, '').toLowerCase();
 
 		// dispatch the from address
 		if (from) {

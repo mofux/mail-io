@@ -17,7 +17,7 @@ module.exports = {
 		// parse the rcpt
 		var m = req.command.data.match(/^to\s*:\s*(\S+)(?:\s+(.*))?/i);
 		if (!m) return res.reject(501, 'parse error in rcpt command');
-		var to = m[1].replace(/^</, '').replace(/>$/, '');
+		var to = m[1].replace(/^</, '').replace(/>$/, '').toLowerCase();
 
 		// dispatch the rcpt address
 		if (to) {
