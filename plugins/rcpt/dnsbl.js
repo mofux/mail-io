@@ -13,8 +13,6 @@ module.exports = {
 		// skip the check if the sender is authenticated
 		if (req.session.accepted.auth) return res.accept();
 
-		console.log(req.session.accepted);
-
 		// get the sender ip
 		var ip = req.session.client.address;
 

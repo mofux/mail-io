@@ -9,36 +9,50 @@ module.exports = function() {
 	// set to true to enable debug output
 	var debug = true;
 
+	// temporary data
 	var data = {};
-	var server = mailer.createServer({
-		listen: {
-			smtp: 2625,
-			smtps: 2626,
-			smtptls: 2627
-		},
+
+	// handlers used for both server types
+	var handlers = {
+		'auth': [{
+			name: 'auth-test',
+			requires: ['core'],
+			handler:  function(req, res) {
+				data.user = req.user;
+				if (req.user.username !== 'user' || req.user.password !== 'password') return res.reject(535, 'authentication failed');
+				res.accept();
+			}
+		}]
+	}
+
+	var smtpServer = mailer.createServer({
+		port: 2625,
 		logger: {
-			// comment / uncomment for debug output
 			verbose: debug ? console.log : function() {}
 		},
-		domains: ['localhost']
+		domains: ['localhost'],
+		handlers: handlers
 	}, function(session) {
-
-		if (session.type === 'smtp') data.session = session;
-
-		session.on('auth', function(req, res) {
-			data.user = req.user;
-			if (req.user.username !== 'user' || req.user.password !== 'password') return res.reject(535, 'authentication failed');
-			res.accept();
-		});
-
+		data.session = session;
 	});
+
+	var smtpsServer = mailer.createServer({
+		port: 2626,
+		secure: true,
+		logger: {
+			verbose: debug ? console.log : function() {}
+		},
+		domains: ['localhost'],
+		handlers: handlers
+	});
+
+
 
 	describe('server tests', function() {
 
 		this.timeout(10000);
 
 		var smtps = tls.connect({port: 2626, rejectUnauthorized: false});
-		var smtptls = net.connect({port: 2627});
 		var smtp = net.connect({port: 2625});
 
 		it('should greet on smtp', function(done) {
@@ -50,13 +64,6 @@ module.exports = function() {
 
 		it('should greet on smtps', function(done) {
 			smtps.once('data', function(data) {
-				data.toString().should.startWith('220 ');
-				done();
-			});
-		});
-
-		it('should greet on smtptls', function(done) {
-			smtptls.once('data', function(data) {
 				data.toString().should.startWith('220 ');
 				done();
 			});
@@ -207,12 +214,12 @@ module.exports = function() {
 		});
 
 		it('should upgrade the connection on STARTTLS', function(done) {
-			smtptls.write('STARTTLS\r\n');
-			smtptls.once('data', function(res) {
+			smtp.write('STARTTLS\r\n');
+			smtp.once('data', function(res) {
 				res.toString().should.startWith('220');
 				var ctx = tls.createSecureContext(data.session.config.tls);
 				var pair = tls.createSecurePair(ctx, false, false, true);
-				pair.encrypted.pipe(smtptls).pipe(pair.encrypted);
+				pair.encrypted.pipe(smtp).pipe(pair.encrypted);
 				pair.once('secure', function() {
 					pair.cleartext.write('EHLO localhost\r\n');
 					var foundSTARTTLS = false;
@@ -221,6 +228,7 @@ module.exports = function() {
 						if (data.toString().indexOf('STARTTLS') !== -1) foundSTARTTLS = true;
 						if (data.toString().indexOf('250 ') !== -1) {
 							foundSTARTTLS.should.not.be.ok;
+							smtp = pair.cleartext;
 							done();
 						} else {
 							pair.cleartext.once('data', check);
@@ -465,13 +473,7 @@ module.exports = function() {
 		});
 
 		it('should be disconnected', function(done) {
-			var err = null;
-			try {
-				smtp.write('SOME MORE DATA\r\n');
-			} catch(ex) {
-				err = ex;
-			}
-			err.code.should.equal('EPIPE');
+			data.session.connection.closed.should.be.true;
 			done();
 		});
 

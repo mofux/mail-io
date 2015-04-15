@@ -33,11 +33,7 @@ module.exports = function() {
 
 	// create "localhost" domain server
 	mailer.createServer({
-		listen: {
-			smtp: 2328,
-			smtps: false,
-			smtptls: false
-		},
+		port: 2328,
 		logger: {
 			verbose: function() {
 				debug ? console.log(colors.bgYellow(' LOCAL ') + ' ' + arguments[0]) : function(){};
@@ -61,11 +57,7 @@ module.exports = function() {
 
 	// create "remote" domain server
 	mailer.createServer({
-		listen: {
-			smtp: 2329,
-			smtps: false,
-			smtptls: false
-		},
+		port: 2329,
 		logger: {
 			verbose: function() {
 				debug ? console.log(colors.bgWhite(' REMOT ') + ' ' + arguments[0]) : function(){};
