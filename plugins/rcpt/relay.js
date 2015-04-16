@@ -2,7 +2,7 @@ module.exports = {
 
 	description: 'checks if the mail has to be relayed',
 	author: 'Thomas Zilz',
-	requires: [],
+	after: ['dnsbl'],
 	handler: function(req, res) {
 
 		// get the configuration of the queue/relay plugin

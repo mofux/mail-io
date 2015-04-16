@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation for "timeout" event',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// end the client connection

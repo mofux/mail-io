@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation to handle unrecognized commands',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// increase the counter for unrecognized commands

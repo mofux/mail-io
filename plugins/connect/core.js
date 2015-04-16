@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation for "connect" event',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// make sure we do not exceed the maximum client connection count

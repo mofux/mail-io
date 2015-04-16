@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation for STARTTLS command',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// make sure the session is not already secured

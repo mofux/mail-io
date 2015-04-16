@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation for EHLO command',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// TODO: implement proper EHLO checks

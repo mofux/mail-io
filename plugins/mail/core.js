@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation for MAIL command',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// make sure HELO or EHLO were accepted

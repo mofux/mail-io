@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'check mail content against spamassassin (needs to be installed)',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// module dependencies

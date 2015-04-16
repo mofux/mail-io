@@ -1,7 +1,7 @@
 module.exports = {
 	description: 'stores the message in the maildir format',
 	author: 'Thomas Zilz',
-	requires: ['queue/spamd'],
+	after: ['spamd'],
 	handler: function(req, res) {
 
 		// module dependencies
@@ -23,111 +23,138 @@ module.exports = {
 			}
 		}
 
-		// check if the mail is addressed to or sent from a domain on our server
-		var mailboxes = [];
+		// a list of sender addresses (after extending them)
+		var senders = [];
 
-		// parse the sender
-		var sender = {
-			username: req.session.envelope.from.split('@')[0] || '',
-			domain: req.session.envelope.from.split('@')[1] || '',
-			address: req.session.envelope.from
-		}
-		sender.mailDir = req.config.mailDir.replace(/%n/g, sender.username).replace(/%d/g, sender.domain);
+		// a list of recipient mail (after extending them)
+		var recipients = [];
 
-		// save the message to the Sent folder of the sender
-		if (req.session.config.domains.indexOf(sender.domain) !== -1) {
-			mailboxes.push({
-				user: sender,
-				folder: '.Sent',
-				path: path.join(sender.mailDir, '.Sent')
-			});
+		// extend function, either from the config or a simple placeholder
+		var extend = _.isFunction(req.config.extend) ? req.config.extend : function(address, cb) {
+			return cb([address]);
 		}
 
-		// save the message to the Inbox or Junk folder of the recipient
-		req.session.envelope.to.forEach(function(to) {
+		async.series({
+			extendSender: function(cb) {
 
-			var rcpt = {
-				username: to.split('@')[0] || '',
-				domain: to.split('@')[1] || '',
-				address: to
-			}
-			rcpt.mailDir = req.config.mailDir.replace(/%n/g, rcpt.username).replace(/%d/g,rcpt.domain);
+				// only store mails for senders that belong to our domain
+				if (req.session.config.domains.indexOf(req.session.envelope.from.split('@')[1]) === -1) return cb();
 
-			if (req.session.config.domains.indexOf(rcpt.domain) !== -1) {
-				mailboxes.push({
-					user: sender,
-					folder: '.Junk',
-					path: path.join(rcpt.mailDir, (res.get('queue/spamd').spam ? '.Junk' : ''))
+				extend(req.session.envelope.from, function(addresses) {
+					if (addresses) senders = senders.concat(addresses);
+					cb();
 				});
-			}
 
-		});
+			},
+			extendRecipients: function(cb) {
 
-		// store the messages to the mailboxes
-		async.each(mailboxes, function(mailbox, cb) {
+				async.each(req.session.envelope.to, function(recipient, cb) {
 
-			// create mail dirs if they do not exist yet
-			var dirs = ['tmp', 'new', 'cur'];
+					// only store mails for recipients that belong to our domain
+					if (req.session.config.domains.indexOf(recipient.split('@')[1]) === -1) return cb();
 
-			async.each(dirs, function(dir, cb) {
+					extend(recipient, function(addresses) {
+						if (addresses) recipients = recipients.concat(addresses);
+						cb();
+					});
 
-				// create the folder (if it does not exist)
-				mkdirp(path.join(mailbox.path, dir), cb);
+				}, cb);
 
-			}, function foldersCreated(err) {
+			},
+			processMailboxes: function(cb) {
 
-				if (err) return cb(err);
+				// a list of mailboxes that will be processed
+				var mailboxes = [];
 
-				// file names for different targets
-				var filename = new Date().getTime() + '.' + uuid.v1() + '.' + req.session.config.hostname;
-				var tmpFile = path.join(mailbox.path, 'tmp', filename);
-				var finalFile = path.join(mailbox.path, 'new', filename);
+				// add mailbox entries for senders
+				senders.forEach(function(address) {
+					mailboxes.push({
+						mailDir: req.config.mailDir.replace(/%n/g, address.split('@')[0]).replace(/%d/g, address.split('@')[1]),
+						folder: '.Sent'
+					});
+				});
 
-				// a reference to source mail
-				var message = fs.createReadStream(req.command.data);
+				// add mailbox entries for recipients
+				recipients.forEach(function(address) {
+					mailboxes.push({
+						mailDir: req.config.mailDir.replace(/%n/g, address.split('@')[0]).replace(/%d/g, address.split('@')[1]),
+						folder: res.get('queue/spamd').spam ? '.Junk' : ''
+					});
+				});
 
-				// try to catch errors (e.g. we cannot read the message)
-				message.once('error', onError);
+				// store the messages to the mailboxes
+				async.each(mailboxes, function(mailbox, cb) {
 
-				// special handling for sent messages:
-				// put the mail to the cur instead of the new folder, and
-				// add the "Seen" (:2,S) attribute to the filename, so that
-				// a client does not show this message as unread
-				if (mailbox.folder === '.Sent') {
-					finalFile = path.join(mailbox.path, 'cur', filename + ':2,S');
-				}
+					// configure mailbox path
+					mailbox.path = path.join(mailbox.mailDir, mailbox.folder);
 
-				// save the message to the file
-				var fileStream = fs.createWriteStream(tmpFile);
+					res.log.verbose('storing mail to ' + mailbox.path);
 
-				// handle errors
-				fileStream.once('error', onError);
+					// create mail dirs if they do not exist yet
+					var dirs = ['tmp', 'new', 'cur'];
 
-				// stream the message to the tmp folder
-				message.pipe(fileStream);
+					async.each(dirs, function(dir, cb) {
 
-				// once the file has been written completely,
-				// copy it from the tmp folder to the new folder
-				fileStream.once('finish', function() {
+						// create the folder (if it does not exist)
+						mkdirp(path.join(mailbox.path, dir), cb);
 
-					fs.link(tmpFile, finalFile, function(err) {
+					}, function foldersCreated(err) {
 
-						if (err) return cb('failed to move message from "' + tmpFile + '" to "' + finalFile + '": ' + err);
+						if (err) return cb(err);
 
-						// delete the message from tmp
-						fs.unlink(tmpFile, function(err) {
+						// file names for different targets
+						var filename = new Date().getTime() + '.' + uuid.v1() + '.' + req.session.config.hostname;
+						var tmpFile = path.join(mailbox.path, 'tmp', filename);
+						var finalFile = path.join(mailbox.path, 'new', filename);
 
-							return err ? cb('failed to delete tmp message "' + tmpFile + '": ' + err) : cb();
+						// a reference to source mail
+						var message = fs.createReadStream(req.command.data);
+
+						// try to catch errors (e.g. we cannot read the message)
+						message.once('error', onError);
+
+						// special handling for sent messages:
+						// put the mail to the cur instead of the new folder, and
+						// add the "Seen" (:2,S) attribute to the filename, so that
+						// a client does not show this message as unread
+						if (mailbox.folder === '.Sent') {
+							finalFile = path.join(mailbox.path, 'cur', filename + ':2,S');
+						}
+
+						// save the message to the file
+						var fileStream = fs.createWriteStream(tmpFile);
+
+						// handle errors
+						fileStream.once('error', onError);
+
+						// stream the message to the tmp folder
+						message.pipe(fileStream);
+
+						// once the file has been written completely,
+						// copy it from the tmp folder to the new folder
+						fileStream.once('finish', function() {
+
+							fs.link(tmpFile, finalFile, function(err) {
+
+								if (err) return cb('failed to move message from "' + tmpFile + '" to "' + finalFile + '": ' + err);
+
+								// delete the message from tmp
+								fs.unlink(tmpFile, function(err) {
+
+									return err ? cb('failed to delete tmp message "' + tmpFile + '": ' + err) : cb();
+
+								});
+
+							});
 
 						});
 
+
 					});
 
-				});
+				}, cb);
 
-
-			});
-
+			}
 		}, function mailboxesProcessed(err) {
 
 			if (err) return onError(err);

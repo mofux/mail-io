@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation for DATA command',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// core modules

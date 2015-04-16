@@ -2,7 +2,6 @@ module.exports = {
 
 	author: 'Thomas Zilz',
 	description: 'adds support for AUTH PLAIN and AUTH LOGIN',
-	requires: [],
   handler: function(req, res) {
 
 		// module dependencies

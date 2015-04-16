@@ -11,9 +11,9 @@ You can create a server like this:
 
 ```javascript
 
-var mailer = require('mailer');
+var mailio = require('mail-io');
 
-mailer.createServer({ ... options ...}, function(session) {
+mailio.createServer({ ... options ...}, function(session) {
 
 	// the session object contains some useful information
 	// like session.accepted and session.rejected which are object maps 
@@ -142,6 +142,10 @@ When calling `end`, the connection to the client will be closed. No more command
 **write**(`message`)
 
 In some situations it is required to send a `message` to the client. For example, the `ehlo` commands sends a list of supported features to the client before `accept`ing the request. Write does not end the current command handler and you are still required to either `accept`, `reject` or `end` the request before the execution can continue.
+
+**read**(`callback`)
+
+Sometimes, you may need additional information from the client (see `auth/core`) that has to be read within the same command handler. For this case, use `res.read` and provide a callback function, that will be called back with the data received from the client.
 
 **set**(`data`)
 

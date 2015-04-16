@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'triggers the "relay" event for every recipient, it\'s up to the user to decide if the message should be relayed',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// module dependencies

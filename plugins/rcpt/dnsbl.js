@@ -2,7 +2,6 @@ module.exports = {
 
 	description: 'core implementation for RCPT command',
 	author: 'Thomas Zilz',
-	requires: [],
 	handler: function(req, res) {
 
 		// module dependencies
