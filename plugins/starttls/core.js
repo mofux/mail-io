@@ -41,6 +41,17 @@ module.exports = {
 		// assign the old event handlers to the new socket
 		socket._events = events;
 
+		// catch error events that happen before the upgrade is done
+		socket.on('clientError', function(err) {
+			res.log.warn('error while upgrading the connection to TLS: ', err);
+		});
+
+		// log certificate requests that tend to crash our server
+		socket.on('OCSPRequest', function(cert, issuer, cb) {
+			res.log.verbose('certificate status requested', cert, issuer);
+			cb(null, null);
+		});
+
 		// wait for the socket to be upgraded
 		socket.once('secure', function() {
 
