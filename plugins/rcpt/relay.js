@@ -6,9 +6,9 @@ module.exports = {
 	handler: function(req, res) {
 
 		// get the configuration of the queue/relay plugin
-		var config = req.session.config.plugins && req.session.config.plugins['queue/relay'] ? req.session.config.plugins['queue/relay'] : null;
+		var config = req.session.config.relay || null;
 
-		// if there is no relay configuration, continue as normal
+		// if there is no relay configuration or the relaying feature was not enabled, continue as normal
 		if (!config) return res.accept();
 
 		// check if the relaying feature is enabled
@@ -22,12 +22,12 @@ module.exports = {
 
 			// message has to be relayed to the foreign recipient
 			// make sure a user is authenticated before allowing relay access
-			if (!config.unauthenticated && !req.session.accepted.auth) return res.reject(502, 'relay access denied');
+			if (!config.allowUnauthenticated && !req.session.accepted.auth) return res.reject(502, 'relay access denied');
 
 			// if the sender is not local and we are not an open relay, complain
-			if (!config.open && !fromLocal) return res.reject(502, 'relay access denied');
+			if (!config.openRelay && !fromLocal) return res.reject(502, 'relay access denied');
 
-		} else if (fromLocal && toLocal && !config.unauthenticated && !req.session.accepted.auth) {
+		} else if (fromLocal && toLocal && !config.allowUnauthenticated && !req.session.accepted.auth) {
 
 			// do not allow mail relay between local users if no user is authenticated
 			return res.reject(502, 'relay access denied');

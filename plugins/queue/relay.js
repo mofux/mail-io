@@ -7,15 +7,16 @@ module.exports = {
 		// module dependencies
 		var fs = require('fs');
 		var async = require('async');
+		var config = req.session.config.relay || null;
 
 		// is the relay feature enabled?
-		if (!req.config.enabled) return res.accept();
+		if (!config || !config.enabled) return res.accept();
 
 		// do we require authentication before we can relay
-		if (!req.config.unauthenticated && !req.session.accepted.auth) return res.accept();
+		if (!config.allowUnauthenticated && !req.session.accepted.auth) return res.accept();
 
 		// do we relay for senders that do not belong to our served domains?
-		if (!req.config.open && req.session.config.domains.indexOf(req.session.envelope.from.split('@')[1]) === -1) return res.accept();
+		if (!config.openRelay && req.session.config.domains.indexOf(req.session.envelope.from.split('@')[1]) === -1) return res.accept();
 
 		// relay to recipients that are not local
 		async.each(req.session.envelope.to, function(to, cb) {
