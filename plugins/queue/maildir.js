@@ -30,7 +30,7 @@ module.exports = {
 		var recipients = [];
 
 		// extend function, either from the config or a simple placeholder
-		var extend = _.isFunction(req.config.extend) ? req.config.extend : function(address, cb) {
+		var extend = typeof(req.config.extend) === 'function' ? req.config.extend : function(address, cb) {
 			return cb([address]);
 		}
 

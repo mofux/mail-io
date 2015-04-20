@@ -16,7 +16,7 @@ module.exports = function() {
 	var handlers = {
 		'auth': [{
 			name: 'auth-test',
-			requires: ['core'],
+			after: ['core'],
 			handler:  function(req, res) {
 				data.user = req.user;
 				if (req.user.username !== 'user' || req.user.password !== 'password') return res.reject(535, 'authentication failed');
@@ -218,7 +218,7 @@ module.exports = function() {
 			smtp.once('data', function(res) {
 				res.toString().should.startWith('220');
 				var ctx = tls.createSecureContext(data.session.config.tls);
-				var pair = tls.createSecurePair(ctx, false, false, true);
+				var pair = tls.createSecurePair(ctx, false, true, false);
 				pair.encrypted.pipe(smtp).pipe(pair.encrypted);
 				pair.once('secure', function() {
 					pair.cleartext.write('EHLO localhost\r\n');
