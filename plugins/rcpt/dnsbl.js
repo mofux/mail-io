@@ -6,7 +6,7 @@ module.exports = {
 
 		// module dependencies
 		var net = require('net');
-		var dns = require('dns');
+		var dns = require('native-dns');
 		var ipv6 = require('ipv6').v6;
 
 		// skip the check if the sender is authenticated
@@ -60,18 +60,19 @@ module.exports = {
 		// perform a DNS A record lookup for that entry
 		var record = reversed + '.' + blacklist;
 
-		dns.resolve(record, 'A', function(err, addresses) {
+		// perform the dns lookup
+		dns.resolve(record, 'A', req.config.resolver || null, function(err, codes) {
 
 			// if an error occurred (most likely NXDOMAIN which is the expected response if the host is not listed)
 			// or if now addresses where returned, we can accept the request
-			if (err || !addresses) {
+			if (err || !codes) {
 				res.log.verbose('dnsbl lookup for "' + record +'" did not resolve. assuming ip to be ok.')
 				return res.accept();
 			}
 
 			// query additional txt information which may contain more information
 			// about the block reason
-			dns.resolveTxt(record, function(err, infos) {
+			dns.resolve(record, 'TXT', req.config.resolver || null, function(err, infos) {
 				res.log.verbose('dnsbl lookup for "' + record + '" resolved. rejecting client [' + ip + '].' + (infos ? ' reason: ' + infos.join(';') : ''));
 				res.reject(550, 'service unavailable; client host [' + ip + '] blocked using ' + blacklist + '; ' + (infos ? infos.join(';') : ''));
 			});
