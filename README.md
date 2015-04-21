@@ -1,5 +1,7 @@
 # mail-io
 
+[![Build Status](https://travis-ci.org/mofux/mail-io.png?branch=master)](https://travis-ci.org/mofux/mail-io)
+
 This module provides an easy way to implement your own SMTP server.
 It supports plugins and can be easily extended.
 
