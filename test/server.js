@@ -22,6 +22,14 @@ module.exports = function() {
 				if (req.user.username !== 'user' || req.user.password !== 'password') return res.reject(535, 'authentication failed');
 				res.accept();
 			}
+		}],
+		'queue': [{
+			name: 'queue-test',
+			after: ['core'],
+			handler: function(req, res) {
+				data.mail = req.mail;
+				res.accept();
+			}
 		}]
 	}
 
@@ -462,6 +470,12 @@ module.exports = function() {
 
 		it('should have a spamd score', function() {
 			should(data.session.data.queue.spamd.score).be.type('number');
+		});
+
+		it('should have a parsed mail object', function() {
+			should(data.mail).be.type('object');
+			data.mail.from[0].address.should.equal('test@localhost');
+			should(data.mail.headers).be.type('object');
 		});
 
 		it('should quit', function(done) {
