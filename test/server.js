@@ -468,6 +468,13 @@ module.exports = function() {
 			data.session.transaction.should.equal(1);
 		});
 
+		it('should have reset the envelope', function() {
+			should(data.session.accepted.mail).be.not.ok;
+			should(data.session.accepted.rcpt).be.not.ok;
+			should(data.session.accepted.data).be.not.ok;
+			should(data.session.accepted.queue).be.not.ok;
+		});
+
 		it('should have a spamd score', function() {
 			should(data.session.data.queue.spamd.score).be.type('number');
 		});
@@ -476,6 +483,47 @@ module.exports = function() {
 			should(data.mail).be.type('object');
 			data.mail.from[0].address.should.equal('test@localhost');
 			should(data.mail.headers).be.type('object');
+		});
+
+		it('should accept mail in second transaction', function(done) {
+			smtp.write('MAIL FROM: <second@localhost>\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('250');
+				data.session.accepted
+				done();
+			});
+		});
+
+		it('should accept rcpt in second transaction', function(done) {
+			smtp.write('RCPT TO: <second-rcpt@localhost>\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('250');
+				done();
+			});
+		});
+
+		it('should accept data in second transaction', function(done) {
+			smtp.write('DATA\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('354');
+				done();
+			});
+		});
+
+		it('should write gtube message in second transaction', function(done) {
+			var file = fs.createReadStream(__dirname + '/assets/gtube.msg');
+			file.pipe(smtp, { end: false });
+			file.once('end', function() {
+				smtp.write('\r\n.\r\n');
+				smtp.once('data', function(res) {
+					res.toString().should.startWith('250');
+					done();
+				});
+			});
+		});
+
+		it('should have increased the transaction id to 2', function() {
+			data.session.transaction.should.equal(2);
 		});
 
 		it('should quit', function(done) {

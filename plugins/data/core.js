@@ -59,10 +59,20 @@ module.exports = {
 				// increase the transaction
 				req.session.transaction++;
 
+				// reset the session envelope
+				req.session.envelope.from = null;
+				req.session.envelope.to = [];
+
+				// reset the accepted commands
+				delete req.session.accepted['rcpt'];
+				delete req.session.accepted['mail'];
+				delete req.session.accepted['data'];
+				delete req.session.accepted['queue'];
+
 				// remove the temporary file
 				fs.exists(file, function(exists) {
 					if (exists) fs.unlink(file, function(err) {
-						if (err) res.log.warn('failed to unklink file "' + file + '": ' + err);
+						if (err) res.log.warn('failed to unlink file "' + file + '": ' + err);
 					});
 				});
 
