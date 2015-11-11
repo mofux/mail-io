@@ -2,7 +2,7 @@
   "name": "mail-io",
   "description": "SMTP server",
   "author": "Thomas Zilz",
-  "version": "1.0.1",
+  "version": "1.0.6",
   "main": "lib/server.js",
   "scripts": {
     "test": "mocha"

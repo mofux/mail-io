@@ -90,10 +90,10 @@ module.exports = {
 									item = item.replace(/\n([\s]*)/, ' ');
 									var matches = item.match(/(\s|-)([0-9\.]+)\s([A-Z0-9\_]+)\s([^:]+)\:\s([^\s]+)/);
 									return {
-										score: matches[2],
-										name: matches[3],
-										description: matches[4].replace(/^\s*([\S\s]*)\b\s*$/, '$1'),
-										type: matches[5]
+										score: matches && matches[2] ? matches[2] : 0,
+										name: matches && matches[3] ? matches[3] : null,
+										description: matches && matches[4] ? matches[4].replace(/^\s*([\S\s]*)\b\s*$/, '$1') : null,
+										type: matches && matches[5] ? matches[5] : null
 									}
 								}));
 							}

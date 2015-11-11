@@ -15,7 +15,7 @@ module.exports = {
 
 		// parse the mail using mailparser
 		var mailparser = new MailParser({
-			streamAttachments: true
+			streamAttachments: false
 		});
 
 		// mailparser finished processing the email
