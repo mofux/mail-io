@@ -6,6 +6,8 @@ It adds `file` to the request object, which is available to all following `queue
 `file` is the path to the temporary file created by the `data/core` plugin. This file contains the RAW content of the message (including headers)
 received by the client.
 
+It also adds `mail` to the request object, which is the parsed mail content including headers and attachment (parsed using mailparser)
+
 If no more `queue` listeners are available, this plugin will always accept the request with the message `250 OK`, which indicates to the client
 that the data has been successfully processed. Once all `queue` listeners have been processed, the `data/core` plugin makes sure to delete the
 temporary message file referenced in `res.file`, so please don't rely on the file always being existent.
