@@ -56,18 +56,11 @@ module.exports = {
 			// emit the internal 'queue' event
 			req.session.emit('queue', file, function() {
 
+				// reset the transaction
+				req.session.resetTransaction();
+				
 				// increase the transaction
 				req.session.transaction++;
-
-				// reset the session envelope
-				req.session.envelope.from = null;
-				req.session.envelope.to = [];
-
-				// reset the accepted commands
-				delete req.session.accepted['rcpt'];
-				delete req.session.accepted['mail'];
-				delete req.session.accepted['data'];
-				delete req.session.accepted['queue'];
 
 				// remove the temporary file
 				fs.exists(file, function(exists) {

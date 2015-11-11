@@ -49,6 +49,10 @@ module.exports = {
 		// wait for the socket to be upgraded
 		socket.once('secure', function() {
 
+			// close the old socket
+			req.session.connection.socket.end();
+
+			// reset the session and connect the new tls socket
 			req.session.reset();
 			req.session.secure = true;
 			req.session.connection.busy = false;

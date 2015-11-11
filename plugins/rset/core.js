@@ -4,7 +4,9 @@ module.exports = {
 	author: 'Thomas Zilz',
 	handler: function(req, res) {
 
-		req.session.reset();
+		// reset the current transaction
+		req.session.resetTransaction();
+
 		res.accept(250, 'OK');
 
 	}

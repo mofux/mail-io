@@ -132,16 +132,6 @@ module.exports = function() {
 			});
 		});
 
-		it('should reset the session', function(done) {
-			smtp.write('RSET\r\n');
-			smtp.once('data', function(res) {
-				res.toString().should.startWith('250');
-				should(data.session.user).not.be.ok;
-				should(data.session.accepted.auth).not.be.ok;
-				done();
-			});
-		});
-
 		it('should provide valid req.user to auth plain handler', function(done) {
 			data.user.should.be.type('object');
 			data.user.username.should.equal('user');
@@ -247,7 +237,17 @@ module.exports = function() {
 			});
 		});
 
+		it('should retain session data after STARTTLS', function(done) {
+			should(data.session.accepted.helo).be.ok;
+			should(data.session.accepted.ehlo).be.ok;
+			should(data.session.accepted.auth).be.ok;
+			done();
+		});
+
 		it('should accept plain auth', function(done) {
+			// clear last login
+			delete data.session.user;
+			delete data.session.accepted.auth;
 			smtp.write('AUTH PLAIN ' + new Buffer('user\x00user\x00\password').toString('base64') + '\r\n');
 			smtp.once('data', function(res) {
 				res.toString().should.startWith('235');
@@ -524,6 +524,55 @@ module.exports = function() {
 
 		it('should have increased the transaction id to 2', function() {
 			data.session.transaction.should.equal(2);
+		});
+
+		it('should accept mail in third transaction', function(done) {
+			smtp.write('MAIL FROM: <third@localhost>\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('250');
+				data.session.accepted
+				done();
+			});
+		});
+
+		it('should accept rcpt in third transaction', function(done) {
+			smtp.write('RCPT TO: <third-rcpt@localhost>\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('250');
+				done();
+			});
+		});
+
+		it('should RSET the transaction', function(done) {
+			smtp.write('RSET\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('250');
+				should(data.session.user).be.ok;
+				should(data.session.accepted.ehlo).be.ok;
+				should(data.session.accepted.auth).be.ok;
+				should(data.session.accepted.mail).be.not.ok;
+				should(data.session.accepted.rcpt).be.not.ok;
+				should(data.session.accepted.data).be.not.ok;
+				should(data.session.accepted.queue).be.not.ok;
+				done();
+			});
+		});
+
+		it('should accept mail after RSET', function(done) {
+			smtp.write('MAIL FROM: <third@localhost>\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('250');
+				data.session.accepted
+				done();
+			});
+		});
+
+		it('should accept rcpt after RSET', function(done) {
+			smtp.write('RCPT TO: <third-rcpt@localhost>\r\n');
+			smtp.once('data', function(res) {
+				res.toString().should.startWith('250');
+				done();
+			});
 		});
 
 		it('should quit', function(done) {
