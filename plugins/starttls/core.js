@@ -37,6 +37,41 @@ module.exports = {
 
 		// upgrade the connection
 		var socket = new tls.TLSSocket(req.session.connection.socket, opts);
+		var base = req.session.connection.socket;
+
+		// add idle timeout
+		socket.setTimeout(req.session.config.limits.idleTimeout);
+
+		// add socket.close method, which really closes the connection
+		socket.close = function(data) {
+
+			// only continue if the socket is not already destroyed
+			if (socket.destroyed) return base.close();
+
+			// destroy immediately if no data is passed, or if the socket is not writeable
+			if (!data || !socket.writable) {
+
+				socket.end();
+				socket.destroy();
+				base.close();
+
+			}
+
+			// write the data to the socket, then destroy it
+			socket.write(data, function() {
+
+				// end the socket
+				socket.end();
+
+				// destroy the socket
+				socket.destroy();
+
+				// close the base socket
+				base.close();
+
+			});
+
+		};
 
 		// assign the old event handlers to the new socket
 		socket._events = events;
@@ -49,7 +84,7 @@ module.exports = {
 		// wait for the socket to be upgraded
 		socket.once('secure', function() {
 
-			// close the old socket
+			// close the old socket write stream, but keep the tcp connection open
 			req.session.connection.socket.end();
 
 			// reset the session and connect the new tls socket

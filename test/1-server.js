@@ -54,8 +54,6 @@ module.exports = function() {
 		handlers: handlers
 	});
 
-
-
 	describe('server tests', function() {
 
 		this.timeout(10000);
@@ -575,7 +573,7 @@ module.exports = function() {
 			});
 		});
 
-		it('should quit', function(done) {
+		it('smtp client should quit', function(done) {
 			smtp.write('QUIT\r\n');
 			smtp.once('data', function(res) {
 				res.toString().should.startWith('221');
@@ -586,6 +584,32 @@ module.exports = function() {
 		it('should be disconnected', function(done) {
 			data.session.connection.closed.should.be.true;
 			done();
+		});
+
+		it('smtp server should have no open connections', function(done) {
+			smtpServer.getConnections(function(err, count) {
+				if (err) return done(err);
+				count.should.equal(0);
+				done();
+			});
+		});
+
+		it('smtps client should quit', function(done) {
+			smtps.write('QUIT\r\n');
+			smtps.once('data', function(res) {
+				res.toString().should.startWith('221');
+				done();
+			});
+		});
+
+		it('smtps server should have no open connections', function(done) {
+
+			smtpsServer.getConnections(function(err, count) {
+				if (err) return done(err);
+				count.should.equal(0);
+				done();
+			});
+
 		});
 
 	});

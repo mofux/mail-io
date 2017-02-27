@@ -5,7 +5,7 @@ module.exports = {
 	handler: function(req, res) {
 
 		// end the client connection
-		res.end(451, 'idle timeout expired - closing connection');
+		res.end(451, 'idle timeout (' + (req.session.config.limits.idleTimeout / 1000) + 's) expired - closing connection');
 
 	}
 
