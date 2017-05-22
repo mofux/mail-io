@@ -7,7 +7,7 @@ module.exports = {
 		// module dependencies
 		var net = require('net');
 		var dns = require('native-dns');
-		var Adress6 = require('ip-address').Address6;
+		var Address6 = require('ip-address').Address6;
 
 		// skip the check if the sender is authenticated
 		if (req.session.accepted.auth) {
@@ -43,7 +43,7 @@ module.exports = {
 
 		} else  if (net.isIPv6(ip)) {
 
-			reversed = new Address6(ip).reverseForm({omitSuffix: true});
+			reversed = new Address6(ip).reverseForm({ omitSuffix: true });
 
 		}
 
