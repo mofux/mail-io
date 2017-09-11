@@ -36,7 +36,7 @@ module.exports = function() {
 		port: 2328,
 		logger: {
 			verbose: function() {
-				debug ? console.log(colors.bgYellow(' LOCAL ') + ' ' + arguments[0]) : function(){};
+				debug ? console.log(colors.white(colors.bgYellow(' LOCAL ') + ' ') + arguments[0]) : function(){};
 			}
 		},
 		domains: ['localhost']
@@ -60,7 +60,7 @@ module.exports = function() {
 		port: 2329,
 		logger: {
 			verbose: function() {
-				debug ? console.log(colors.bgWhite(' REMOT ') + ' ' + arguments[0]) : function(){};
+				debug ? console.log(colors.white(colors.bgCyan(' REMOT ') + ' ') + arguments[0]) : function(){};
 			}
 		},
 		relay: {
