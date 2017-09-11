@@ -2,7 +2,7 @@
   "name": "mail-io",
   "description": "SMTP server",
   "author": "Thomas Zilz",
-  "version": "1.0.12",
+  "version": "1.0.13",
   "main": "lib/server.js",
   "scripts": {
     "test": "mocha"
@@ -15,7 +15,7 @@
     "lodash": "^3.5.0",
     "mailparser": "^0.5.1",
     "mkdirp": "^0.5.0",
-    "moment-timezone": "^0.3.1",
+    "moment-timezone": "^0.5.13",
     "native-dns": "^0.7.0",
     "node-uuid": "^1.4.3",
     "nodemailer": "^1.3.2",

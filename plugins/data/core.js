@@ -33,7 +33,9 @@ module.exports = {
 			'Received: from ' + req.session.client.hostname + ' (' + req.session.client.address + ')\n\t' +
 			'by ' + req.session.config.hostname + ' (' + req.session.connection.server.address().address + ') with ' +
 			(req.session.accepted.ehlo ? 'ESMTP' : 'SMTP') + (req.session.secure ? 'S' : '') + (req.session.accepted.auth ? 'A' : '') + '; ' +
-			moment().format('ddd, DD MMM YYYY HH:mm:ss ZZ') + '\r\n';
+			moment().locale('en').format('ddd, DD MMM YYYY HH:mm:ss ZZ') + '\r\n';
+			
+		console.log('received', received);
 
 		// write the received header to the top of the file
 		fileStream.write(received);
