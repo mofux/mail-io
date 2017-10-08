@@ -78,11 +78,8 @@ module.exports = function () {
 				received = received.concat(req.session.envelope.to);
 				should(req.session.envelope.from).equal('user@remote');
 				should(req.session.envelope.to.length).equal(1);
-				localhost.getConnections((err, count) => {
-					res.accept();
-					should(count).equal(2);
-					if (received.length === 2) return done(err);
-				});
+				res.accept();
+				if (received.length === 2) return done();
 				
 			}
 			
