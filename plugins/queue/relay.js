@@ -35,6 +35,7 @@ module.exports = {
 					res.log.error('Failed to submit message to relay queue: ', err);
 					
 				});
+				
 			}
 			
 		}
