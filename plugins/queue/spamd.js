@@ -6,14 +6,14 @@ module.exports = {
 	handler: function(req, res) {
 
 		// module dependencies
-		var fs = require('fs');
+		let fs = require('fs');
 
 		// checks the message against the spamassassin daemon
-		var report = function(message, cb/*err, result*/) {
+		let report = function(message, cb/*err, result*/) {
 
-			var spamd = require('net').createConnection(783);
-			var done = false;
-			var response = {
+			let spamd = require('net').createConnection(783);
+			let done = false;
+			let response = {
 				code: -1,
 				message: 'FAILED',
 				spam: false,
@@ -24,7 +24,7 @@ module.exports = {
 			};
 
 			// if the connection times out, we return an error
-			spamd.setTimeout(10 * 1000, function() {
+			spamd.setTimeout(10 * 1000, () => {
 
 				done = true;
 				return cb('connection to spamd timed out');
@@ -32,23 +32,17 @@ module.exports = {
 			});
 
 			// once connected, send the request
-			spamd.once('connect', function() {
+			spamd.once('connect', () => {
 
 				spamd.write('REPORT SPAMC/1.5\r\n');
 				spamd.write('\r\n');
-
-				message.on('data', function(data) {
-					spamd.write(data);
-				});
-
-				message.once('end', function() {
-					spamd.end('\r\n');
-				});
+				message.on('data', (data) => spamd.write(data));
+				message.once('end', () => spamd.end('\r\n'));
 
 			});
 
 			// catch service errors
-			spamd.once('error', function(err) {
+			spamd.once('error', (err) => {
 				if (!done) {
 					done = true;
 					return cb(err);
@@ -56,16 +50,16 @@ module.exports = {
 			});
 
 			// flag that remembers if the very first data has been received
-			var first = true;
+			let first = true;
 
 			// process the spamd response data
-			spamd.on('data', function(data) {
+			spamd.on('data', (data) => {
 
-				var lines = data.toString().split('\r\n');
-				lines.forEach(function(line) {
+				let lines = data.toString().split('\r\n');
+				lines.forEach((line) => {
 					if (first) {
 						first = false;
-						var result = line.match(/SPAMD\/([0-9\.\-]+)\s([0-9]+)\s([0-9A-Z_]+)/);
+						let result = line.match(/SPAMD\/([0-9\.\-]+)\s([0-9]+)\s([0-9A-Z_]+)/);
 						if (result) {
 							response.code = parseInt(result[2], 10);
 							response.message = result[3];
@@ -88,7 +82,7 @@ module.exports = {
 							if (result) {
 								response.report = response.report.concat(result.map(function(item) {
 									item = item.replace(/\n([\s]*)/, ' ');
-									var matches = item.match(/(\s|-)([0-9\.]+)\s([A-Z0-9\_]+)\s([^:]+)\:\s([^\s]+)/);
+									let matches = item.match(/(\s|-)([0-9\.]+)\s([A-Z0-9\_]+)\s([^:]+)\:\s([^\s]+)/);
 									return {
 										score: matches && matches[2] ? matches[2] : 0,
 										name: matches && matches[3] ? matches[3] : null,
@@ -104,7 +98,7 @@ module.exports = {
 			});
 
 			// process the data once the connection is closed
-			spamd.once('close', function() {
+			spamd.once('close', () => {
 				if (!done) {
 					done = true;
 					return cb(null, response);
@@ -114,17 +108,17 @@ module.exports = {
 		}
 
 		// run the report
-		report(fs.createReadStream(req.command.data), function(err, data) {
+		report(fs.createReadStream(req.command.data), (err, data) => {
 
 			// set a spam score and publishes the result, even if an error occured,
 			// in which case the score will always be 0
-			var result = { score: data && data.score ? data.score : 0, baseScore: req.config.baseScore || 5, err: err || null };
+			let result = { score: data && data.score ? data.score : 0, baseScore: req.config.baseScore || 5, err: err || null };
 			result.spam = result.score >= result.baseScore;
 			res.set(result);
 
 			if (err) {
 				if (err.code === 'ECONNREFUSED') {
-					res.log.verbose('unable to connect to spamd on port 783');
+					res.log.verbose('Unable to connect to spamd on port 783');
 				} else {
 					res.log.warn('spamd encountered an error: ', err)
 				}

@@ -14,37 +14,50 @@
  */
 module.exports = function() {
 
-	var should = require('should');
-	var mailer = require('../lib/server.js');
-	var net = require('net');
-	var tls = require('tls');
-	var fs = require('fs');
-	var colors = require('colors/safe');
-	var localhost = null;
-	var remote = null;
+	let should = require('should');
+	let SMTPServer = require('../src/smtp-server');
+	let net = require('net');
+	let tls = require('tls');
+	let fs = require('fs');
+	let path = require('path');
+	let os = require('os');
+	let colors = require('colors/safe');
+	let localhost = null;
+	let remote = null;
 
-// enable debug output
-	var debug = true;
+	// enable debug output
+	let debug = true;
+	let config = {};
 
-// function will be overwritten by our test.
-// function is called when the 'queue' event is triggered on localhost
-	var onLocalhostQueue = null;
-	var failed = 0;
+	// generate config
+	['localhost', 'remote'].forEach((c) => {
+		config[c] = {
+			domains: [c],
+			logger: {},
+			relay: {
+				queueDir: path.join(os.tmpdir(), `mail-io-queue-test-${c}-${Date.now()}`),
+				smtpPort: c === 'remote' ? 2328 : 25,
+				retryBaseInterval: 1
+			}
+		};
+		['debug', 'verbose', 'info', 'protocol', 'error', 'warn'].forEach((l) => {
+			config[c].logger[l] = (...args) => {
+				if (typeof args[0] !== 'string') console.log(args[0]);
+				console.log(colors.bgCyan(colors.white(` ${c.toUpperCase().slice(0, 5)} `)) + args[0]);
+			}
+		});
+	});
+
+	// function will be overwritten by our test.
+	// function is called when the 'queue' event is triggered on localhost
+	let onLocalhostQueue = null;
+	let failed = 0;
 
 	// create "localhost" domain server
-	mailer.createServer({
-		port: 2328,
-		logger: {
-			verbose: function() {
-				debug ? console.log(colors.white(colors.bgYellow(' LOCAL ') + ' ') + arguments[0]) : function(){};
-			}
-		},
-		domains: ['localhost']
-	}, function(session) {
+	new SMTPServer(config.localhost, (session) => {
 		localhost = session;
 		session.on('queue', onLocalhostQueue);
-
-		session.on('rcpt', function(req, res) {
+		session.on('rcpt', (req, res) => {
 			// reject on the first try
 			if (failed >= 1) {
 				return res.accept();
@@ -53,41 +66,29 @@ module.exports = function() {
 				return res.reject(431, 'temporary error message');
 			}
 		});
-	});
+	}).listen(2328);
 
 	// create "remote" domain server
-	mailer.createServer({
-		port: 2329,
-		logger: {
-			verbose: function() {
-				debug ? console.log(colors.white(colors.bgCyan(' REMOT ') + ' ') + arguments[0]) : function(){};
-			}
-		},
-		relay: {
-			smtpPort: 2328,
-			retryBaseInterval: 1
-		},
-		domains: ['remote']
-	}, function(session) {
-		remote = session;
-	});
-
+	new SMTPServer(config.remote, (session) => {
+		remote = session
+	}).listen(2329);
+	
 	describe('relay temporary failure test', function() {
 
 		this.timeout('20000');
 
-		var client = net.connect({ host: 'localhost', port: 2329 });
+		let client = net.connect({ host: 'localhost', port: 2329 });
 
-		it('should connect', function(done) {
-			client.once('data', function(res) {
+		it('should connect', (done) => {
+			client.once('data', (res) => {
 				res.toString().should.startWith('220');
 				done();
 			});
 		});
 
-		it('should relay mail to user@localhost and admin@localhost', function(done) {
+		it('should relay mail to user@localhost and admin@localhost', (done) => {
 
-			var message = 'Hello user@localhost, how are you?';
+			let message = 'Hello user@localhost, how are you?';
 
 			client.write('EHLO client\r\n');
 			client.write('AUTH PLAIN dXNlcgB1c2VyAHBhc3N3b3Jk\r\n');
@@ -97,23 +98,23 @@ module.exports = function() {
 			client.write('DATA\r\n');
 			client.write(message + '\r\n.\r\n');
 
-			var users = ['admin@localhost', 'user@localhost'];
+			let users = ['admin@localhost', 'user@localhost'];
 
 			// hook to 'queue' listener on localhost
-			onLocalhostQueue = function(req, res) {
+			onLocalhostQueue = (req, res) => {
 				localhost.accepted.data.should.be.ok;
 				localhost.envelope.from.should.equal('user@remote');
 				localhost.envelope.to[0].should.endWith('@localhost');
 				users.splice(users.indexOf(localhost.envelope.to[0]), 1);
-				fs.readFileSync(req.command.data).toString().should.endWith(message);
+				fs.readFileSync(req.command.data).toString().trim().should.endWith(message);
 				res.accept();
 
 				// hook to 'queue' listener on localhost
-				onLocalhostQueue = function(req, res) {
+				onLocalhostQueue = (req, res) => {
 					localhost.accepted.data.should.be.ok;
 					localhost.envelope.from.should.equal('user@remote');
 					localhost.envelope.to[0].should.equal(users[0]);
-					fs.readFileSync(req.command.data).toString().should.endWith(message);
+					fs.readFileSync(req.command.data).toString().trim().should.endWith(message);
 					res.accept();
 					done();
 				}

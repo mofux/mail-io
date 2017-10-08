@@ -5,30 +5,30 @@ module.exports = {
 	handler: function(req, res) {
 
 		// module dependencies
-		var net = require('net');
-		var dns = require('native-dns');
-		var Address6 = require('ip-address').Address6;
+		let net = require('net');
+		let dns = require('native-dns');
+		let Address6 = require('ip-address').Address6;
 
 		// skip the check if the sender is authenticated
 		if (req.session.accepted.auth) {
-			res.log.verbose('client authenticated. skipping dnsbl lookup.');
+			res.log.verbose('Client authenticated. Skipping dnsbl lookup.');
 			return res.accept();
 		}
 
 		// get the sender ip
-		var ip = req.session.client.address;
+		let ip = req.session.client.address;
 
 		// do not perform a lookup for loopback addresses (useful for testing)
 		if (ip && ip.indexOf('127.0.0.1') !== -1) {
-			res.log.verbose('client ip is a loopback address. skipping dnsbl lookup.');
+			res.log.verbose('Client ip is a loopback address. Skipping dnsbl lookup.');
 			return res.accept();
 		}
 
 		// get the blacklist names
-		var blacklist = req.config.blacklist || 'zen.spamhaus.org';
+		let blacklist = req.config.blacklist || 'zen.spamhaus.org';
 
 		// stores the reversed ip address
-		var reversed = null;
+		let reversed = null;
 
 		// check the address
 		if (net.isIPv4(ip)) {
@@ -49,28 +49,28 @@ module.exports = {
 
 		// if we were not able to reverse the address, accept
 		if (!reversed) {
-			res.log.verbose('unable to parse ip address "' + ip + '"');
+			res.log.verbose('Unable to parse ip address "' + ip + '"');
 			return res.accept();
 		}
 
 		// perform a DNS A record lookup for that entry
-		var record = reversed + '.' + blacklist;
+		let record = reversed + '.' + blacklist;
 
 		// perform the dns lookup
-		dns.resolve(record, 'A', req.config.resolver || null, function(err, codes) {
+		dns.resolve(record, 'A', req.config.resolver || null, (err, codes) => {
 
 			// if an error occurred (most likely NXDOMAIN which is the expected response if the host is not listed)
 			// or if now addresses where returned, we can accept the request
 			if (err || !codes) {
-				res.log.verbose('dnsbl lookup for "' + record +'" did not resolve. assuming ip to be ok.')
+				res.log.verbose('DNSBL lookup for "' + record +'" did not resolve. assuming ip to be ok.')
 				return res.accept();
 			}
 
 			// query additional txt information which may contain more information
 			// about the block reason
 			dns.resolve(record, 'TXT', req.config.resolver || null, function(err, infos) {
-				res.log.verbose('dnsbl lookup for "' + record + '" resolved. rejecting client [' + ip + '].' + (infos ? ' reason: ' + infos.join(';') : ''));
-				res.reject(550, 'service unavailable; client host [' + ip + '] blocked using ' + blacklist + '; ' + (infos ? infos.join(';') : ''));
+				res.log.verbose('DNSBL lookup for "' + record + '" resolved. rejecting client [' + ip + '].' + (infos ? ' reason: ' + infos.join(';') : ''));
+				res.reject(550, 'Service unavailable; Client host [' + ip + '] blocked using ' + blacklist + '; ' + (infos ? infos.join(';') : ''));
 			});
 
 		});

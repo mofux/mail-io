@@ -14,7 +14,7 @@ module.exports = {
 			res.write('250-' + req.session.config.hostname);
 
 			// write out the supported features
-			var features = [].concat(req.config.features);
+			let features = [].concat(req.config.features);
 
 			// remove the STARTTLS feature if the session is already secure
 			if (req.session.secure && features.indexOf('STARTTLS') !== -1) {

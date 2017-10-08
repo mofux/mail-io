@@ -5,15 +5,15 @@ module.exports = {
 	handler: function(req, res) {
 
 		// core modules
-		var os = require('os');
-		var path = require('path');
-		var fs = require('fs');
-		var moment = require('moment-timezone');
+		let os = require('os');
+		let path = require('path');
+		let fs = require('fs');
+		let moment = require('moment-timezone');
 
 		// make sure we have valid senders and recipients
-		if ((!req.session.accepted.helo && !req.session.accepted.ehlo)) return res.reject(503, 'need HELO or EHLO command');
-		if (!req.session.accepted.mail) return res.reject(503, 'no valid sender');
-		if (!req.session.accepted.rcpt) return res.reject(503, 'no valid recipients');
+		if ((!req.session.accepted.helo && !req.session.accepted.ehlo)) return res.reject(503, 'Need HELO or EHLO command');
+		if (!req.session.accepted.mail) return res.reject(503, 'No valid sender');
+		if (!req.session.accepted.rcpt) return res.reject(503, 'No valid recipients');
 
 		// start the data mode, attach the data stream to
 		// the request, so the following listeners can use it
@@ -23,15 +23,15 @@ module.exports = {
 		res.accept(354, 'OK');
 
 		// write the data to a file
-		var file = path.join(os.tmpDir(), req.session.id + '-' + req.session.transaction + '.msg');
+		let file = path.join(os.tmpdir(), req.session.id + '-' + req.session.transaction + '.msg');
 
 		// write stream to the tmp file
-		var fileStream = fs.createWriteStream(file);
+		let fileStream = fs.createWriteStream(file);
 
 		// add received headers
-		var received =
+		let received =
 			'Received: from ' + req.session.client.hostname + ' (' + req.session.client.address + ')\n\t' +
-			'by ' + req.session.config.hostname + ' (' + req.session.connection.server.address().address + ') with ' +
+			'by ' + req.session.config.hostname + ' (' + req.session.server.address().address + ') with ' +
 			(req.session.accepted.ehlo ? 'ESMTP' : 'SMTP') + (req.session.secure ? 'S' : '') + (req.session.accepted.auth ? 'A' : '') + '; ' +
 			moment().locale('en').format('ddd, DD MMM YYYY HH:mm:ss ZZ') + '\r\n';
 
@@ -39,12 +39,10 @@ module.exports = {
 		fileStream.write(received);
 
 		// when data is arriving, stream it to the file
-		req.stream.on('data', function(data) {
-			fileStream.write(data);
-		});
+		req.stream.on('data', (data) =>	fileStream.write(data));
 
 		// stream ended
-		req.stream.once('end', function() {
+		req.stream.once('end', () => {
 
 			// close the file stream
 			fileStream.end();
@@ -54,7 +52,7 @@ module.exports = {
 			req.session.connection.continue();
 
 			// emit the internal 'queue' event
-			req.session.emit('queue', file, function() {
+			req.session.emit('queue', file, () => {
 
 				// reset the transaction
 				req.session.resetTransaction();
@@ -63,9 +61,9 @@ module.exports = {
 				req.session.transaction++;
 
 				// remove the temporary file
-				fs.exists(file, function(exists) {
-					if (exists) fs.unlink(file, function(err) {
-						if (err) res.log.warn('failed to unlink file "' + file + '": ' + err);
+				fs.exists(file, (exists) => {
+					if (exists) fs.unlink(file, (err) => {
+						if (err) res.log.warn('Failed to unlink file "' + file + '": ' + err);
 					});
 				});
 

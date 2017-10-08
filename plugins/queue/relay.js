@@ -3,12 +3,11 @@ module.exports = {
 	description: 'triggers the "relay" event for every recipient, it\'s up to the user to decide if the message should be relayed',
 	author: 'Thomas Zilz',
 	after: ['core'],
-	handler: function(req, res) {
+	handler: async(req, res) => {
 
 		// module dependencies
-		var fs = require('fs');
-		var async = require('async');
-		var config = req.session.config.relay || null;
+		const fs = require('fs');
+		const config = req.session.config.relay || null;
 
 		// is the relay feature enabled?
 		if (!config || !config.enabled) return res.accept();
@@ -20,24 +19,28 @@ module.exports = {
 		if (!config.openRelay && req.session.config.domains.indexOf(req.session.envelope.from.split('@')[1]) === -1) return res.accept();
 
 		// relay to recipients that are not local
-		async.each(req.session.envelope.to, function(to, cb) {
+		for (let to of req.session.envelope.to) {
 
-			var local = req.session.config.domains.indexOf(to.split('@')[1]) !== -1;
+			// check if the domain is a domain served by us
+			let local = req.session.config.domains.includes(String(to.split('@')[1]).toLowerCase());
+			
+			// domain is not local, relay to it
 			if (!local) {
-				res.log.verbose('relaying mail to "' + to + '". local domains: ' + req.session.config.domains.join(', '));
-				req.session.relay.add({ from: req.session.envelope.from, to: to }, fs.createReadStream(req.command.data), req.mail.headers, cb);
-			} else {
-				cb();
+				
+				// relay it
+				res.log.verbose(`Relaying mail to "${to}". Local domains: ${req.session.config.domains.join(', ')}`);
+				await req.session.relay.add({ from: req.session.envelope.from, to: to }, fs.createReadStream(req.file), req.mail.headers).catch((err) => {
+					
+					// error adding the mail to the relay
+					res.log.error('Failed to submit message to relay queue: ', err);
+					
+				});
 			}
-
-		}, function(err) {
-
-			if (err) res.log.error('failed to submit message to relay queue: ', err);
-
-			// accept
-			return res.accept();
-
-		});
+			
+		}
+		
+		// accept anyway
+		return res.accept();
 
 	}
 

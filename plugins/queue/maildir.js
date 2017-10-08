@@ -5,32 +5,32 @@ module.exports = {
 	handler: function(req, res) {
 
 		// module dependencies
-		var fs = require('fs');
-		var async = require('async');
-		var mkdirp = require('mkdirp');
-		var path = require('path');
-		var uuid = require('node-uuid');
+		let fs = require('fs');
+		let async = require('async');
+		let mkdirp = require('mkdirp');
+		let path = require('path');
+		let uuid = require('node-uuid');
 
 		// a flag indicating if we have already answered
-		var answered = false;
+		let answered = false;
 
 		// handler if something goes wrong
-		var onError = function(err) {
-			res.log.error('error while storing message:', err);
+		let onError = function(err) {
+			res.log.error('Error while storing message:', err);
 			if (!answered) {
-				res.reject(451, 'requested action aborted - failed to store message.');
+				res.reject(451, 'Requested action aborted - failed to store message.');
 				answered = true;
 			}
 		}
 
 		// a list of sender addresses (after extending them)
-		var senders = [];
+		let senders = [];
 
 		// a list of recipient mail (after extending them)
-		var recipients = [];
+		let recipients = [];
 
 		// extend function, either from the config or a simple placeholder
-		var extend = typeof(req.config.extend) === 'function' ? req.config.extend : function(address, cb) {
+		let extend = typeof(req.config.extend) === 'function' ? req.config.extend : (address, cb) => {
 			return cb([address]);
 		}
 
@@ -48,12 +48,12 @@ module.exports = {
 			},
 			extendRecipients: function(cb) {
 
-				async.each(req.session.envelope.to, function(recipient, cb) {
+				async.each(req.session.envelope.to, (recipient, cb) => {
 
 					// only store mails for recipients that belong to our domain
 					if (req.session.config.domains.indexOf(recipient.split('@')[1]) === -1) return cb();
 
-					extend(recipient, function(addresses) {
+					extend(recipient, (addresses) => {
 						if (addresses) recipients = recipients.concat(addresses);
 						cb();
 					});
@@ -64,7 +64,7 @@ module.exports = {
 			processMailboxes: function(cb) {
 
 				// a list of mailboxes that will be processed
-				var mailboxes = [];
+				let mailboxes = [];
 
 				// add mailbox entries for senders
 				senders.forEach(function(address) {
@@ -88,10 +88,10 @@ module.exports = {
 					// configure mailbox path
 					mailbox.path = path.join(mailbox.mailDir, mailbox.folder);
 
-					res.log.verbose('storing mail to ' + mailbox.path);
+					res.log.verbose('Storing mail to ' + mailbox.path);
 
 					// create mail dirs if they do not exist yet
-					var dirs = ['tmp', 'new', 'cur'];
+					let dirs = ['tmp', 'new', 'cur'];
 
 					async.each(dirs, function(dir, cb) {
 
@@ -103,12 +103,12 @@ module.exports = {
 						if (err) return cb(err);
 
 						// file names for different targets
-						var filename = new Date().getTime() + '.' + uuid.v1() + '.' + req.session.config.hostname;
-						var tmpFile = path.join(mailbox.path, 'tmp', filename);
-						var finalFile = path.join(mailbox.path, 'new', filename);
+						let filename = new Date().getTime() + '.' + uuid.v1() + '.' + req.session.config.hostname;
+						let tmpFile = path.join(mailbox.path, 'tmp', filename);
+						let finalFile = path.join(mailbox.path, 'new', filename);
 
 						// a reference to source mail
-						var message = fs.createReadStream(req.command.data);
+						let message = fs.createReadStream(req.command.data);
 
 						// try to catch errors (e.g. we cannot read the message)
 						message.once('error', onError);
@@ -122,7 +122,7 @@ module.exports = {
 						}
 
 						// save the message to the file
-						var fileStream = fs.createWriteStream(tmpFile);
+						let fileStream = fs.createWriteStream(tmpFile);
 
 						// handle errors
 						fileStream.once('error', onError);
@@ -132,16 +132,16 @@ module.exports = {
 
 						// once the file has been written completely,
 						// copy it from the tmp folder to the new folder
-						fileStream.once('finish', function() {
+						fileStream.once('finish', () => {
 
-							fs.link(tmpFile, finalFile, function(err) {
+							fs.link(tmpFile, finalFile, (err) => {
 
-								if (err) return cb('failed to move message from "' + tmpFile + '" to "' + finalFile + '": ' + err);
+								if (err) return cb('Failed to move message from "' + tmpFile + '" to "' + finalFile + '": ' + err);
 
 								// delete the message from tmp
-								fs.unlink(tmpFile, function(err) {
+								fs.unlink(tmpFile, (err) => {
 
-									return err ? cb('failed to delete tmp message "' + tmpFile + '": ' + err) : cb();
+									return err ? cb('Failed to delete tmp message "' + tmpFile + '": ' + err) : cb();
 
 								});
 
@@ -155,7 +155,7 @@ module.exports = {
 				}, cb);
 
 			}
-		}, function mailboxesProcessed(err) {
+		}, (err) => {
 
 			if (err) return onError(err);
 			if (!answered) res.accept();

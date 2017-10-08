@@ -1,18 +1,18 @@
 module.exports = function() {
 
-  var should = require('should');
-  var mailer = require('../lib/server.js');
-  var net = require('net');
-  var tls = require('tls');
+  let should = require('should');
+  let net = require('net');
+  let tls = require('tls');
+	let SMTPServer = require('../src/smtp-server.js');
 
   // set to true to enable debug output
-  var debug = true;
+  let debug = true;
 
   describe('server idle disconnect', function() {
 
     this.timeout(10000);
 
-    var server = mailer.createServer({
+    let server = new SMTPServer({
       port: 2725,
       logger: { verbose: debug ? console.log : function() {} },
       domains: ['localhost'],
@@ -20,9 +20,10 @@ module.exports = function() {
         idleTimeout: 1000
       }
     });
+		
+		server.listen(2725);
 
-    //var client = net.connect({port: 2725});
-    var client = net.connect({port: 2725});
+    let client = net.connect({port: 2725});
 
     it('should greet on smtp', function(done) {
 
@@ -37,13 +38,13 @@ module.exports = function() {
       client.write('STARTTLS\r\n');
       client.once('data', function(res) {
         res.toString().should.startWith('220');
-        var ctx = tls.createSecureContext(server.config.tls);
-        var pair = tls.createSecurePair(ctx, false, true, false);
+        let ctx = tls.createSecureContext(server.config.tls);
+        let pair = tls.createSecurePair(ctx, false, true, false);
         pair.encrypted.pipe(client).pipe(pair.encrypted);
         pair.once('secure', function() {
           pair.cleartext.write('EHLO localhost\r\n');
-          var foundSTARTTLS = false;
-          var check = function(data) {
+          let foundSTARTTLS = false;
+          let check = function(data) {
             data.toString().should.startWith('250');
             if (data.toString().indexOf('STARTTLS') !== -1) foundSTARTTLS = true;
             if (data.toString().indexOf('250 ') !== -1) {
@@ -61,7 +62,7 @@ module.exports = function() {
 
     it('should get disconnected within 1 second idle', function(done) {
 
-      var answered = false;
+      let answered = false;
 
       // expect the disconnect message next
       client.once('data', function(data) {

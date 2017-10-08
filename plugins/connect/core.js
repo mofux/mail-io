@@ -2,10 +2,10 @@ module.exports = {
 
 	description: 'core implementation for "connect" event',
 	author: 'Thomas Zilz',
-	handler: function(req, res) {
+	handler: (req, res) => {
 
 		// make sure we do not exceed the maximum client connection count
-		req.session.connection.server.getConnections(function(err, count) {
+		req.session.server.getConnections((err, count) => {
 
 			if (err || count > req.session.config.limits.maxConnections) {
 

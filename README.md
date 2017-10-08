@@ -13,57 +13,47 @@ You can create a server like this:
 
 ```javascript
 
-var mailio = require('mail-io');
+// Load the module
+const mio = require('mail-io');
 
-mailio.createServer({ ... options ...}, function(session) {
+// Create a new SMTP server
+const server = new mio.Server({ ... options ... });
 
-	// the session object contains some useful information
-	// like session.accepted and session.rejected which are object maps 
-	// that contain the commands that have been rejected and accepted 
-	// as the key and the status code of the command as the value.
-	// session.connection contains the original connection from
-	// the underlying smtp-stream module, and
-	// session.connection.socket contains the raw socket of the tcp connection.
-
-	// you can listen to SMTP commands like this
-	session.on('auth', function(req, res) {
-
-		// only let user "john" with password "doe" pass
-		if (req.user && req.user.username === 'john' && req.user.password === 'doe') {
-			res.accept(250, 'OK');
-		} else {
-			res.reject(535, 'authentication failed');
-		}
-
-	});
-
-	// make sure mails are only received for local users
-	// and is only relayed for local users that are authenticated
-	session.on('rcpt', function(req, res) {
+// Listen for new client connections
+server.on('session', (session) => {
 	
-		// some imaginary domain name that belongs to us
-		var domain = 'mydomain.com';
+	// Register a custom authentication handler
+	session.on('auth', (req, res) => {
 		
-		// check if from or to address belongs to our domain
-		var fromLocal = req.session.envelope.from.split('@')[1] === domain;
-		var toLocal = req.to.split('@')[1] === domain;
-		
-		// if the message is not sent from a local address or to a 
-		// local address, reject it
-		if (!fromLocal && !toLocal) return res.reject(502, 'relay access denied');
-		
-		// if the message is sent from our domain, 
-		// require the user to be authenticated
-		if (fromLocal && !toLocal && !req.session.accepted.auth) {
-			return res.reject(502, 'relay access denied');
+		// Only accept user "john" with password "doe"
+		if (req.user && req.user.username === 'john' && req.user.password === 'doe') {
+			return res.accept(250, 'OK');
+		} else {
+			return res.reject(535, 'Authentication failed');
 		}
-
-		// accept the recipient
-		res.accept();
 		
 	});
-
+	
 });
+
+// Register a global handler to reject all recipients that do not belong
+// to "foo.com" domain
+server.addHandler('rcpt', {
+	name: 'my-rcpt-handler',
+	before: 'dnsbl',
+	handler: (req, res) => {
+		
+		if (req.to.split('@')[1] === 'foo.com') {
+			res.accept();
+		} else {
+			res.reject(502, 'We only accept mail for the "foo.com" domain');
+		}
+		
+	}
+});
+
+// Listen on port 25
+server.listen(25);
 
 ```
 
@@ -107,7 +97,7 @@ Contains the handler specific configuration that was passed via the `options` in
 For example, to pass a custom DNSBL blacklist server to `rcpt/dnsbl` plugin, the options object may look like this:
 
 ```javascript
-mailer.createServer({
+const server = new mio.Server ({
 	plugins: {
 		'rcpt/dnsbl': {
 			blacklist: 'zen.spamhaus.org'

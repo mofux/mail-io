@@ -6,7 +6,7 @@ module.exports = {
 	handler: function(req, res) {
 
 		// get the configuration of the queue/relay plugin
-		var config = req.session.config.relay || null;
+		let config = req.session.config.relay || null;
 
 		// if there is no relay configuration or the relaying feature was not enabled, continue as normal
 		if (!config) return res.accept();
@@ -15,8 +15,8 @@ module.exports = {
 		if (!config.enabled) return res.accept();
 
 		// with the relay enabled, check if the mail needs to be relayed
-		var fromLocal = req.session.config.domains.indexOf(req.session.envelope.from.split('@')[1]) !== -1;
-		var toLocal = req.session.config.domains.indexOf(req.to.split('@')[1]) !== -1;
+		let fromLocal = req.session.config.domains.indexOf(req.session.envelope.from.split('@')[1]) !== -1;
+		let toLocal = req.session.config.domains.indexOf(req.to.split('@')[1]) !== -1;
 
 		if (!toLocal) {
 

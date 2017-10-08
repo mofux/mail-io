@@ -6,7 +6,6 @@ module.exports = {
 
 		// reset the current transaction
 		req.session.resetTransaction();
-
 		res.accept(250, 'OK');
 
 	}

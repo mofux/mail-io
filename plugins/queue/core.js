@@ -1,5 +1,5 @@
-var MailParser = require('mailparser').MailParser;
-var fs = require('fs');
+let MailParser = require('mailparser').MailParser;
+let fs = require('fs');
 
 module.exports = {
 
@@ -8,19 +8,19 @@ module.exports = {
 	handler: function(req, res) {
 
 		// remember if the request was answered
-		var answered = false;
+		let answered = false;
 
 		// for easier handling, assign the file to the req
 		req.file = req.command.data;
 
 		// parse the mail using mailparser
-		var mailparser = new MailParser({
+		let mailparser = new MailParser({
 			streamAttachments: false
 		});
 
 		// mailparser finished processing the email
-		mailparser.on('end', function(mail) {
-
+		mailparser.once('end', (mail) => {
+			
 			// attach the parsed mail object to the request
 			req.mail = mail;
 
@@ -32,28 +32,28 @@ module.exports = {
 		});
 
 		// handle parsing errors
-		mailparser.on('error', function(err) {
+		mailparser.once('error', (err) => {
 
-			res.log.warn('failed to parse email: ', err);
+			res.log.warn('Failed to parse email: ', err);
 
 			if (!answered) {
 				answered = true;
-				res.reject(451, 'error while parsing the mail');
+				res.reject(451, 'Error while parsing the mail');
 			}
 
 		});
 
 		// create a read stream to the message file
-		var fileStream = fs.createReadStream(req.file);
+		let fileStream = fs.createReadStream(req.file);
 
 		// handle file errors
-		fileStream.on('error', function(err) {
+		fileStream.once('error', (err) => {
 
-			res.log.warn('failed to read file "' + req.file + '": ', err);
+			res.log.warn('Failed to read file "' + req.file + '": ', err);
 
 			if (!answered) {
 				answered = true;
-				res.reject(451, 'error while processing the mail');
+				res.reject(451, 'Error while processing the mail');
 			}
 
 		});

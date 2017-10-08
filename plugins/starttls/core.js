@@ -17,10 +17,10 @@ module.exports = {
 		res.accept(220, 'OK');
 
 		// initialize tls
-		var tls = require('tls');
+		let tls = require('tls');
 
-		var ctx = tls.createSecureContext(req.session.config.tls);
-		var opts = {
+		let ctx = tls.createSecureContext(req.session.config.tls);
+		let opts = {
 			secureContext: ctx,
 			isServer: true,
 			server: req.session.connection.server,
@@ -32,12 +32,12 @@ module.exports = {
 		};
 
 		// remember old event handlers, then remove them
-		var events = req.session.connection.socket._events;
+		let events = req.session.connection.socket._events;
 		req.session.connection.socket.removeAllListeners();
 
 		// upgrade the connection
-		var socket = new tls.TLSSocket(req.session.connection.socket, opts);
-		var base = req.session.connection.socket;
+		let socket = new tls.TLSSocket(req.session.connection.socket, opts);
+		let base = req.session.connection.socket;
 
 		// add idle timeout
 		socket.setTimeout(req.session.config.limits.idleTimeout);
@@ -77,12 +77,12 @@ module.exports = {
 		socket._events = events;
 
 		// catch error events that happen before the upgrade is done
-		socket.on('clientError', function(err) {
+		socket.on('clientError', (err) => {
 			res.log.warn('error while upgrading the connection to TLS: ', err);
 		});
 
 		// wait for the socket to be upgraded
-		socket.once('secure', function() {
+		socket.once('secure', () => {
 
 			// close the old socket write stream, but keep the tcp connection open
 			req.session.connection.socket.end();
