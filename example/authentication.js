@@ -1,13 +1,5 @@
-var mailer = require('./../lib/server.js');
-var async = require('async');
-
-var servers = mailer.createServer({
-	listen: {
-		smtp: false,
-		smtps: false,
-		smtptls: 25
-	}
-}, function(session) {
+const mio = require('../src/index.js');
+const server = new mio.Server({}, (session) => {
 
 	session.on('auth', function(req, res) {
 
@@ -22,3 +14,4 @@ var servers = mailer.createServer({
 
 });
 
+server.listen(2525, () => console.log('SMTP server up on port 2525'));
