@@ -148,50 +148,50 @@ class SMTPClient {
 
 		});
 		
-		// create a new SMTP connection using the passed configuration
-		let connection = new SMTPConnection(config);
-		
-		// wrapper to deal with the callback based api of smtp-connection,
-		// and installs a logger in between
-		let process = (fn) => {
+		// wrap the connection logic into a promise, which makes it easier
+		// to deal with connection events
+		return new Promise((resolve, reject) => {
+
+			// create a new SMTP connection using the passed configuration
+			let connection = new SMTPConnection(config);
 			
-			// return a promise, that essentially wraps the callback
-			return new Promise((resolve, reject) => {
+			// called when we finished or failed
+			let done = (err) => {
 
-				fn((err) => {
-					
-					// log the error
-					if (err) {
-						
-						// use the logger to report back
-						logger.log('warn', id, null, config.identity, 'error', null, { message: `Failed to deliver message for ${[].concat(envelope.to).join(', ')}: `, data: err.message || err });
-						// end the connection
-						connection.quit();
-						connection.close();
-						
-					}
-					
-					// resolve / reject
-					err ? reject(err) : resolve();
+				// log the error
+				if (err) {
 
-				});
+					// use the logger to report back
+					logger.log('warn', id, null, config.identity, 'error', null, { message: `Failed to deliver message for ${[].concat(envelope.to).join(', ')}: `, data: err.message || err });
+
+				}
 				
-			});
+				// end the connection
+				connection.quit();
+				connection.close();
+				err ? reject(err) : resolve();
+
+			}
 			
-		}
-	
-		// connect
-		await process((cb) => connection.connect(cb));
-		
-		// login if login details were passed
-		if (config.login) await process((cb) => connection.login(config.login, cb));
-		
-		// send the message
-		await process((cb) => connection.send(envelope, message, cb));
-		
-		// end the connection
-		connection.quit();
-		connection.close();
+			// catch errors (e.g. timeout)
+			connection.on('error', (err) => done(err));
+			
+			// run the client workflow through an async wrapper, this makes
+			// it much easier to deal with the branched logic
+			(async () => {
+				
+				// connect
+				await new Promise((res, rej) => connection.connect((err) => err ? rej(err) : res()));
+				
+				// login
+				if (config.login) await new Promise((res, rej) => connection.login(config.login, (err) => err ? rej(err) : res()));
+				
+				// send
+				await new Promise((res, rej) => connection.send(envelope, message, (err) => err ? rej(err) : res()));
+				
+			})().then(() => done()).catch((err) => done(err));
+			
+		});
 		
 	}
 	
