@@ -177,7 +177,7 @@ class SMTPRelay {
 		} else {
 			
 			// log it
-			this.log.verbose(mail, 'process', null, `Sending NDR for undeliverable mail to "${to}"`);
+			this.log.verbose(mail, 'ndr', null, `Sending NDR for undeliverable mail to "${mail.envelope.from}"`);
 			
 			// we have tried long enough, lets give up
 			await this.ndr(mail);
