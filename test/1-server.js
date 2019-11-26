@@ -39,9 +39,9 @@ module.exports = function() {
 	describe('server tests', function() {
 
 		this.timeout(1000);
-		
+
 		it('should initialize server', (done) => {
-			
+
 			server = new SMTPServer({
 				logger: {
 					verbose: debug ? console.log : () => {}
@@ -51,28 +51,28 @@ module.exports = function() {
 			}, (session) => {
 				data.session = session;
 			});
-			
+
 			should(server.port).equal(null);
-			
+
 			server.listen(2625, (err) => {
 				should(server.port).equal(2625);
-				should(server.config).be.ok;	
+				should(server.config).be.ok;
 				done(err);
 			});
-			
+
 		});
 
 		it('should greet on smtp', (done) => {
-			
+
 			smtp = net.connect({ port: 2625 }, (err) => {
 				smtp.once('data', (data) => {
 					data.toString().should.startWith('220 ');
 					done();
 				});
 			});
-			
+
 		});
-		
+
 		it('should have one server connection', (done) => {
 			server.getConnections((err, count) => {
 				should(err).not.be.ok;
@@ -204,27 +204,25 @@ module.exports = function() {
 			smtp.once('data', (res) => {
 				res.toString().should.startWith('220');
 				let ctx = tls.createSecureContext(data.session.config.tls);
-				let pair = tls.createSecurePair(ctx, false, true, false);
-				pair.encrypted.pipe(smtp).pipe(pair.encrypted);
-				pair.once('secure', () => {
-					pair.cleartext.write('EHLO localhost\r\n');
+				smtp = tls.connect({ secureContext: ctx, socket: smtp });
+				smtp.once('secure', () => {
 					let foundSTARTTLS = false;
 					let check = (data) => {
 						data.toString().should.startWith('250');
 						if (data.toString().indexOf('STARTTLS') !== -1) foundSTARTTLS = true;
 						if (data.toString().indexOf('250 ') !== -1) {
 							foundSTARTTLS.should.not.be.ok;
-							smtp = pair.cleartext;
 							done();
 						} else {
-							pair.cleartext.once('data', check);
+							smtp.once('data', check);
 						}
 					}
-					pair.cleartext.once('data', check);
+					smtp.once('data', check);
+					smtp.write('EHLO localhost\r\n');
 				});
 			});
 		});
-		
+
 		it('should have one server connection after STARTTLS', (done) => {
 			server.getConnections((err, count) => {
 				should(err).not.be.ok;
@@ -232,7 +230,7 @@ module.exports = function() {
 				done(err);
 			});
 		});
-		
+
 		it('should retain session data after STARTTLS', (done) => {
 			should(data.session.accepted.helo).be.ok;
 			should(data.session.accepted.ehlo).be.ok;
@@ -593,5 +591,5 @@ module.exports = function() {
 		});
 
 	});
-	
+
 }()

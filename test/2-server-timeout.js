@@ -20,7 +20,7 @@ module.exports = function() {
         idleTimeout: 1000
       }
     });
-		
+
 		server.listen(2725);
 
     let client = net.connect({port: 2725});
@@ -34,28 +34,26 @@ module.exports = function() {
 
     });
 
-    it('should upgrade the connection on STARTTLS', function(done) {
+    it('should upgrade the connection on STARTTLS', (done) => {
       client.write('STARTTLS\r\n');
-      client.once('data', function(res) {
+      client.once('data', (res) => {
         res.toString().should.startWith('220');
         let ctx = tls.createSecureContext(server.config.tls);
-        let pair = tls.createSecurePair(ctx, false, true, false);
-        pair.encrypted.pipe(client).pipe(pair.encrypted);
-        pair.once('secure', function() {
-          pair.cleartext.write('EHLO localhost\r\n');
+        client = tls.connect({ secureContext: ctx, socket: client });
+        client.once('secure', () => {
           let foundSTARTTLS = false;
-          let check = function(data) {
+          let check = (data) => {
             data.toString().should.startWith('250');
             if (data.toString().indexOf('STARTTLS') !== -1) foundSTARTTLS = true;
             if (data.toString().indexOf('250 ') !== -1) {
               foundSTARTTLS.should.not.be.ok;
-              client = pair.cleartext;
               done();
             } else {
-              pair.cleartext.once('data', check);
+              client.once('data', check);
             }
           }
-          pair.cleartext.once('data', check);
+          client.once('data', check);
+          client.write('EHLO localhost\r\n');
         });
       });
     });

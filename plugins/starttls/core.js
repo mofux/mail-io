@@ -23,12 +23,7 @@ module.exports = {
 		let opts = {
 			secureContext: ctx,
 			isServer: true,
-			server: req.session.connection.server,
-
-			// throws if SNICallback is missing, so we set a default callback
-			SNICallback: function(servername, cb) {
-				cb(null, ctx);
-			}
+			server: req.session.connection.server
 		};
 
 		// remember old event handlers, then remove them
@@ -83,9 +78,6 @@ module.exports = {
 
 		// wait for the socket to be upgraded
 		socket.once('secure', () => {
-
-			// close the old socket write stream, but keep the tcp connection open
-			req.session.connection.socket.end();
 
 			// reset the session and connect the new tls socket
 			req.session.reset();
